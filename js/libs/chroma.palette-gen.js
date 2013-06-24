@@ -18,10 +18,13 @@
       through which recipients can access the Corresponding Source.  
   */
  
-// v0.1
+// v0.2
  
 var paletteGenerator = {
-	generate: function(colorsCount, checkColor, forceMode, quality, ultra_precision){
+	
+  
+  
+  generate: function(colorsCount, checkColor, forceMode, quality, ranges, ultra_precision){
 		// Default
 		if(colorsCount === undefined)
 			colorsCount = 8;
@@ -32,8 +35,14 @@ var paletteGenerator = {
 		if(quality === undefined)
 			quality = 50;
 		ultra_precision = ultra_precision || false
-
-		if(forceMode){
+    if(ranges === undefined)
+      ranges = [[0,100],[-100,100],[-100,100]];
+		
+    random_color = function (min,max) {
+      return Math.random() * (max - min) + min;
+    }
+    
+    if(forceMode){
 			// Force Vector Mode
 			
 			var colors = [];
@@ -114,25 +123,24 @@ var paletteGenerator = {
 			function checkColor2(color){
 				// Check that a color is valid: it must verify our checkColor condition, but also be in the color space
 				var lab = color.lab();
-				var hcl = color.hcl();
-				return !isNaN(color.rgb[0]) && color.rgb[0]>=0 && color.rgb[1]>=0 && color.rgb[2]>=0 && color.rgb[0]<256 && color.rgb[1]<256 && color.rgb[2]<256 && checkColor(color);
+				return !isNaN(color.rgb()[0]) && color.rgb()[0]>=0 && color.rgb()[1]>=0 && color.rgb()[2]>=0 && color.rgb()[0]<256 && color.rgb()[1]<256 && color.rgb()[2]<256 && checkColor(color);
 			}
 			
 			var kMeans = [];
 			for(i=0; i<colorsCount; i++){
-				var lab = [Math.random(),2*Math.random()-1,2*Math.random()-1];
-				while(!checkColor2(chroma.lab(lab))){
-					lab = [Math.random(),2*Math.random()-1,2*Math.random()-1];
+				var lab = [random_color(ranges[0][0],ranges[0][1]),random_color(ranges[1][0],ranges[1][1]),random_color(ranges[2][0],ranges[2][1])];
+        while(!checkColor2(chroma.lab(lab[0],lab[1],lab[2]))){
+					lab = [random_color(ranges[0][0],ranges[0][1]),random_color(ranges[1][0],ranges[1][1]),random_color(ranges[2][0],ranges[2][1])];
 				}
-				kMeans.push(lab);
+        kMeans.push(lab);
 			}
 			
 			var colorSamples = [];
 			var samplesClosest = [];
 			if(ultra_precision){
-				for(l=0; l<=1; l+=0.01){
-					for(a=-1; a<=1; a+=0.05){
-						for(b=-1; b<=1; b+=0.05){
+				for(l=0; l<=100; l+=1){
+					for(a=0; a<=100; a+=1){
+						for(b=-0; b<=100; b+=1){
 							if(checkColor2(chroma.lab(l, a, b))){
 								colorSamples.push([l, a, b]);
 								samplesClosest.push(null);
@@ -141,9 +149,9 @@ var paletteGenerator = {
 					}
 				}
 			} else {
-				for(l=0; l<=1; l+=0.05){
-					for(a=-1; a<=1; a+=0.1){
-						for(b=-1; b<=1; b+=0.1){
+				for(l=ranges[0][0]; l<=ranges[0][1]; l+=10){
+					for(a=ranges[1][0]; a<=ranges[1][1]; a+=5){
+						for(b=ranges[2][0]; b<=ranges[2][1]; b+=5){
 							if(checkColor2(chroma.lab(l, a, b))){
 								colorSamples.push([l, a, b]);
 								samplesClosest.push(null);
@@ -231,7 +239,7 @@ var paletteGenerator = {
 			return kMeans.map(function(lab){return chroma.lab(lab[0], lab[1], lab[2]);});
 		}
 	},
-
+  
 	diffSort: function(colorsToSort){
 		// Sort
 		var diffColors = [colorsToSort.shift()];
